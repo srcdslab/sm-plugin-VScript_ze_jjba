@@ -27,7 +27,7 @@ public bool IsValidPlayer(int player)
 	return player >= 1 && player <= 64 && IsValidEntity(player) && IsPlayerAlive(player);
 }
 
-public float GetDistance(const float[3] v1, const float[3] v2)
+public float GetDistance(const float v1[3], const float v2[3])
 {
 	return SquareRoot((v1[0] - v2[0]) * (v1[0] - v2[0]) + (v1[1] - v2[1]) * (v1[1] - v2[1]) + (v1[2] - v2[2]) * (v1[2] - v2[2]));
 }
@@ -129,7 +129,7 @@ methodmap MovingNpc < Basic
 		}
 	}
 	
-	public float GetTargetYaw(const float[3] start, const float[3] target)
+	public float GetTargetYaw(const float start[3], const float target[3])
 	{
 		float yaw = 0.00;
 		float v[3];
