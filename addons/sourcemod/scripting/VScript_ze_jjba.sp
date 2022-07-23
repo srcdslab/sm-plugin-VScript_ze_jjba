@@ -8,6 +8,7 @@
 
 #include <sourcemod>
 #include <sdktools>
+#include <sdkhooks>
 #include <outputinfo>
 #include <vscripts/JJBA>
 
@@ -41,56 +42,79 @@ public void OnMapStart()
 	}
 }
 
-public void OnEntitySpawned(int entity, const char[] classname)
+public void OnEntityCreated(int entity, const char[] classname)
 {
-	if(!bValidMap)
+	if (!bValidMap)
 		return;
 
-	if(IsValidEntity(entity))
+	if (!CanTestFeatures() || GetFeatureStatus(FeatureType_Native, "SDKHook_OnEntitySpawned") != FeatureStatus_Available)
+		SDKHook(entity, SDKHook_SpawnPost, OnEntitySpawnedPost);
+}
+
+public void OnEntitySpawnedPost(int entity)
+{
+	if (!IsValidEntity(entity))
+		return;
+
+	// 1 frame later required to get some properties
+	RequestFrame(ProcessEntitySpawned, entity);
+}
+
+public void OnEntitySpawned(int entity, const char[] classname)
+{
+	ProcessEntitySpawned(entity);
+}
+
+stock void ProcessEntitySpawned(int entity)
+{
+	if (!bValidMap || !IsValidEntity(entity))
+		return;
+
+	char classname[64];
+	GetEntityClassname(entity, classname, sizeof(classname));
+
+	if (strcmp(classname, "phys_thruster") == 0)
 	{
-		if(strcmp(classname, "phys_thruster") == 0)
+		char sTarget[128];
+		GetOutputTarget(entity, "m_OnUser1", 0, sTarget, sizeof(sTarget));
+		if(!sTarget[0])
+			return;
+		
+		if (StrContains(sTarget, "npc_physbox") != -1)
 		{
-			char sTarget[128];
-			GetOutputTarget(entity, "m_OnUser1", 0, sTarget, sizeof(sTarget));
-			if(!sTarget[0])
-				return;
-			
-			if (StrContains(sTarget, "npc_physbox") != -1)
+			int ent = GetEntityIndexByName(sTarget, "func_physbox");
+			MovingNpc npc = null;
+			bool bAlreadyInList = false;
+			for (int i = 0; i < g_aMovingNpc.Length; i++)
 			{
-				int ent = GetEntityIndexByName(sTarget, "func_physbox");
-				MovingNpc npc = null;
-				bool bAlreadyInList = false;
-				for (int i = 0; i < g_aMovingNpc.Length; i++)
+				MovingNpc tmp = view_as<MovingNpc>(g_aMovingNpc.Get(i));
+				if(tmp.entity == ent)
 				{
-					MovingNpc tmp = view_as<MovingNpc>(g_aMovingNpc.Get(i));
-					if(tmp.entity == ent)
-					{
-						npc = tmp;
-						bAlreadyInList = true;
-					}
+					npc = tmp;
+					bAlreadyInList = true;
 				}
-				if(!bAlreadyInList)
-				{
-					npc = new MovingNpc(ent);
-				}
-				GetEntPropString(entity, Prop_Data, "m_iName", sTarget, sizeof(sTarget));
-				if(StrContains(sTarget, "npc_thruster_forward") != -1)
-				{
-					npc.SetThruster(true, entity);
-				}
-				else if(StrContains(sTarget, "npc_thruster_side") != -1)
-				{
-					npc.SetThruster(false, entity);
-				}
-				
-				if(bAlreadyInList)
-				{
-					npc.Start();
-					
-				}
-				else
-					g_aMovingNpc.Push(npc);
 			}
+			if(!bAlreadyInList)
+			{
+				npc = new MovingNpc(ent);
+			}
+			GetEntPropString(entity, Prop_Data, "m_iName", sTarget, sizeof(sTarget));
+			if(StrContains(sTarget, "npc_thruster_forward") != -1)
+			{
+				npc.SetThruster(true, entity);
+			}
+			else if(StrContains(sTarget, "npc_thruster_side") != -1)
+			{
+				npc.SetThruster(false, entity);
+			}
+			
+			if(bAlreadyInList)
+			{
+				npc.Start();
+				
+			}
+			else
+				g_aMovingNpc.Push(npc);
 		}
 	}
 }
@@ -100,22 +124,25 @@ public void OnEntityDestroyed(int entity)
 	if(!bValidMap)
 		return;
 
-	if(IsValidEntity(entity))
+	if (!CanTestFeatures() || GetFeatureStatus(FeatureType_Native, "SDKHook_OnEntitySpawned") != FeatureStatus_Available)
+		SDKUnhook(entity, SDKHook_SpawnPost, OnEntitySpawnedPost);
+
+	if(!IsValidEntity(entity))
+		return;
+
+	char sClassname[128];
+	GetEntityClassname(entity, sClassname, sizeof(sClassname));
+	if(strcmp(sClassname, "func_physbox") == 0)
 	{
-		char sClassname[128];
-		GetEntityClassname(entity, sClassname, sizeof(sClassname));
-		if(strcmp(sClassname, "func_physbox") == 0)
+		for (int i = 0; i < g_aMovingNpc.Length; i++)
 		{
-			for (int i = 0; i < g_aMovingNpc.Length; i++)
+			MovingNpc npc = view_as<MovingNpc>(g_aMovingNpc.Get(i));
+			if(npc.entity == entity)
 			{
-				MovingNpc npc = view_as<MovingNpc>(g_aMovingNpc.Get(i));
-				if(npc.entity == entity)
-				{
-					npc.Stop();
-					delete npc;
-					g_aMovingNpc.Erase(i);
-					break;
-				}
+				npc.Stop();
+				delete npc;
+				g_aMovingNpc.Erase(i);
+				break;
 			}
 		}
 	}
