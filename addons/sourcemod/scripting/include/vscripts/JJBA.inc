@@ -157,19 +157,19 @@ methodmap MovingNpc < Basic
 		int h = -1;
 		ArrayList candidates = new ArrayList();
 		float orig[3];
-		GetOrigin(this.entity, orig);
-		while (-1 != (h = FindEntityByClassnameWithin(h, "player", orig, TARGET_DISTANCE)))
+		Vscripts_GetOrigin(this.entity, orig);
+		while (-1 != (h = Vscripts_FindEntityByClassnameWithin(h, "player", orig, TARGET_DISTANCE)))
 		{
 			//check if target is a valid player + CT team(3) + health above 0 (not dead)
 			if (GetClientTeam(h) == 3 && IsPlayerAlive(h))
 			{
 				//check if the target is in sight of the npc (this physbox origin+48 height)
 				float t_orig[3];
-				GetOrigin(this.entity, orig);
+				Vscripts_GetOrigin(this.entity, orig);
 				orig[2] += 40.0;
-				GetOrigin(h, t_orig);
+				Vscripts_GetOrigin(h, t_orig);
 				t_orig[2] += 48.0;
-				if (TraceLine(orig, t_orig, this.entity) == 1.00)
+				if (Vscripts_TraceLine(orig, t_orig, this.entity) == 1.00)
 					candidates.Push(h);	//if everything required is OK, add the target to the list of candidates
 			}
 		}
@@ -185,39 +185,39 @@ methodmap MovingNpc < Basic
 	
 	public void Tick()
 	{
-		EntFireByIndex(this.tf, "Deactivate", "", "0.00", -1);
-		EntFireByIndex(this.ts, "Deactivate", "", "0.00", -1);
+		Vscripts_EntFireByIndex(this.tf, "Deactivate", "", 0.00, -1);
+		Vscripts_EntFireByIndex(this.ts, "Deactivate", "", 0.00, -1);
 		if (!IsValidPlayer(this.target) || GetClientTeam(this.target) != 3 || this.ttime >= RETARGET_TIME)
 		{
 			this.SearchTarget();
 		}
 		this.ttime+=TICKRATE;
-		EntFireByIndex(this.tf, "Activate", "", "0.02", -1);
-		EntFireByIndex(this.ts, "Activate", "", "0.02", -1);
+		Vscripts_EntFireByIndex(this.tf, "Activate", "", 0.02, -1);
+		Vscripts_EntFireByIndex(this.ts, "Activate", "", 0.02, -1);
 		float angl[3], s_orig[3], t_orig[3];
-		GetAngles(this.entity, angl);
+		Vscripts_GetAngles(this.entity, angl);
 		float sa = angl[1];
-		GetOrigin(this.entity, s_orig);
-		GetOrigin(this.target, t_orig);
+		Vscripts_GetOrigin(this.entity, s_orig);
+		Vscripts_GetOrigin(this.target, t_orig);
 		float ta = this.GetTargetYaw(s_orig, t_orig);
 		float ang = FloatAbs((sa - ta + 360.0) % 360.0);
 		if (ang >= 180.0)
-			EntFireByIndex(this.ts, "AddOutput", "angles 0 270 0", "0.00", -1);
+			Vscripts_EntFireByIndex(this.ts, "AddOutput", "angles 0 270 0", 0.00, -1);
 		else 
-			EntFireByIndex(this.ts, "AddOutput", "angles 0 90 0", "0.00", -1);
+			Vscripts_EntFireByIndex(this.ts, "AddOutput", "angles 0 90 0", 0.00, -1);
 		float angdif = (sa - ta - 180.0);
 		while (angdif > 360.0) { angdif -= 180.0; }
 		while (angdif < -180.0) { angdif += 360.0; }
 		angdif = FloatAbs(angdif);
-		GetOrigin(this.entity, s_orig);
-		GetOrigin(this.target, t_orig);
+		Vscripts_GetOrigin(this.entity, s_orig);
+		Vscripts_GetOrigin(this.target, t_orig);
 		//float tdist = GetDistance(s_orig, t_orig);
 		//float tdistz = (t_orig[2] - s_orig[2]);
 		char input[128];
 		Format(input, sizeof(input), "force %.4f", 3000.0 * SPEED_FORWARD);
-		EntFireByIndex(this.tf, "AddOutput", input, "0.00", -1);
+		Vscripts_EntFireByIndex(this.tf, "AddOutput", input, 0.00, -1);
 		Format(input, sizeof(input), "force %.4f", (3.0 * SPEED_TURNING) * angdif);
-		EntFireByIndex(this.ts, "AddOutput", input, "0.00", -1);
+		Vscripts_EntFireByIndex(this.ts, "AddOutput", input, 0.00, -1);
 		CreateTimer(TICKRATE, Tick_Cb, this, TIMER_FLAG_NO_MAPCHANGE);
 	}
 }
@@ -231,8 +231,8 @@ public Action Tick_Cb(Handle timer, MovingNpc npc)
 	}
 	else
 	{
-		EntFireByIndex(npc.tf, "Deactivate", "", "0.00", -1);
-		EntFireByIndex(npc.ts, "Deactivate", "", "0.00", -1);
+		Vscripts_EntFireByIndex(npc.tf, "Deactivate", "", 0.00, -1);
+		Vscripts_EntFireByIndex(npc.ts, "Deactivate", "", 0.00, -1);
 		delete npc;
 	}
 	return Plugin_Stop;
